@@ -19,38 +19,52 @@ if seixosG is None:
     print("File not 3 found. Bye!")
     exit(0)
 
-
+# Binariza todas as imagens
 fig_binP = np.where(seixosP > 100, 255, 0)
 fig_binM = np.where(seixosM > 100, 255, 0)
 fig_binG = np.where(seixosG > 100, 255, 0)
 
-hp,wp = fig_binP.shape
-hm,wm = fig_binM.shape
-hg,wg = fig_binG.shape
-
-ranhurasP = 0
-ranhurasM = 0
-ranhurasG = 0
-
-for i in range (hp):
-    for j in range (wp):
-        if fig_binP[i,j] == 0:
-            ranhurasP += 1
-
-for i in range (hm):
-    for j in range (wm):
-        if fig_binM[i,j] == 0:
-            ranhurasM += 1
-
-for i in range (hg):
-    for j in range (wg):
-        if fig_binG[i,j] == 0:
-            ranhurasG += 1
 
 
-print(ranhurasP,ranhurasM,ranhurasG)
+# Soma os pixels pretos de cada imagem
+ranhurasP = np.sum(fig_binP == 0)
+ranhurasM = np.sum(fig_binM == 0)
+ranhurasG = np.sum(fig_binG == 0)
 
 
+# Função para classificar
+def classificar(ranhuras):
+    if 35000 <= ranhuras <= 40000:
+        return "P"
+    elif 65000 <= ranhuras <= 73000:
+        return "M"
+    elif 95000 <= ranhuras <= 103000:
+        return "G"
+    else:
+        return "Desconhecido"
+
+
+print("Qual imagem você quer verificar?")
+
+opcao = input("Digite 1, 2 ou 3: ")
+
+if opcao == "1":
+    ranhuras = np.sum(fig_binP == 0)
+    resultado = classificar(ranhuras)
+    print(f"Imagem 1 tem {ranhuras} ranhuras → Classificação: {resultado}")
+
+elif opcao == "2":
+    ranhuras = np.sum(fig_binM == 0)
+    resultado = classificar(ranhuras)
+    print(f"Imagem 2 tem {ranhurasM} ranhuras → Classificação: {resultado}")
+
+elif opcao == "3":
+    ranhuras = np.sum(fig_binG == 0)
+    resultado = classificar(ranhuras)
+    print(f"Imagem 3 tem {ranhurasG} ranhuras → Classificação: {resultado}")
+
+else:
+    print("Opção inválida!")
 
 
 
