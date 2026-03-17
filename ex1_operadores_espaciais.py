@@ -20,27 +20,40 @@ if seixosG is None:
     exit(0)
 
 
+fig_binP = np.where(seixosP > 100, 255, 0)
+fig_binM = np.where(seixosM > 100, 255, 0)
+fig_binG = np.where(seixosG > 100, 255, 0)
+
+hp,wp = fig_binP.shape
+hm,wm = fig_binM.shape
+hg,wg = fig_binG.shape
+
+ranhurasP = 0
+ranhurasM = 0
+ranhurasG = 0
+
+for i in range (hp):
+    for j in range (wp):
+        if fig_binP[i,j] == 0:
+            ranhurasP += 1
+
+for i in range (hm):
+    for j in range (wm):
+        if fig_binM[i,j] == 0:
+            ranhurasM += 1
+
+for i in range (hg):
+    for j in range (wg):
+        if fig_binG[i,j] == 0:
+            ranhurasG += 1
 
 
-(h, w) = seixosP.shape
+print(ranhurasP,ranhurasM,ranhurasG)
 
 
 
-img_bin = np.zeros((h,w), dtype = "uint8")
 
 
-for i in range(h):
-    for j in range(w):
-        if seixosP[i,j] > 70:
-            img_bin[i,j] = 255
-  
-
-
-
-# Mostrando a nova imagem gerada - binarizada (preto e branca)
-plt.figure('Fig Bin')
-plt.imshow(img_bin, cmap = 'gray')
-plt.show()  
 
 
 
