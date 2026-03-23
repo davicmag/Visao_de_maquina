@@ -100,20 +100,10 @@ for j in range(100,wc):
 print("Colunas com 255:", col_255)
 print("Colunas com 0:", col_0)
 
-if len(col_255) > 0:
-    x_linha = min(col_255)
-    if x_linha >= wc:
-        x_linha = 0
-else:
-    print("Nao encontrou branco.")
-    x_linha = wc // 2
-
-
 cruza = False
-for i in range(hc):
-    if img_crop[i, x_linha] == 0:
-        cruza = True
-        break
+
+if min(col_255) >= min(col_0):
+    cruza = True
 
 if cruza:
     print("Está em impedimento.")
@@ -129,7 +119,7 @@ ax[1].imshow(img_out, cmap='gray')
 ax[1].set_title("Imagem retificada")
 
 ax[2].imshow(img_crop, cmap='gray')
-ax[2].axvline(x=x_linha, color='red', linewidth=2)
+ax[2].axvline(x=min(col_255), color='red', linewidth=2)
 ax[2].set_title("Recorte + linha vermelha")
 
 for a in ax:
