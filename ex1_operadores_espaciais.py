@@ -51,17 +51,17 @@ opcao = input("Digite 1, 2 ou 3: ")
 if opcao == "1":
     ranhuras = np.sum(fig_binP == 0)
     resultado = classificar(ranhuras)
-    print(f"Imagem 1 tem {ranhuras} ranhuras → Classificação: {resultado}")
+    print(f"Imagem 1 tem {ranhuras} pixels de ranhuras → Classificação: {resultado}")
 
 elif opcao == "2":
     ranhuras = np.sum(fig_binM == 0)
     resultado = classificar(ranhuras)
-    print(f"Imagem 2 tem {ranhurasM} ranhuras → Classificação: {resultado}")
+    print(f"Imagem 2 tem {ranhurasM} pixels de ranhuras → Classificação: {resultado}")
 
 elif opcao == "3":
     ranhuras = np.sum(fig_binG == 0)
     resultado = classificar(ranhuras)
-    print(f"Imagem 3 tem {ranhurasG} ranhuras → Classificação: {resultado}")
+    print(f"Imagem 3 tem {ranhurasG} pixels de ranhuras → Classificação: {resultado}")
 
 else:
     print("Opção inválida!")
