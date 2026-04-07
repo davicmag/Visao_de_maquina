@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from Find_N_MinMaxValues import Find_N_MaxValues
 
-img = cv2.imread("Visao_de_maquina\Figuras_APS2\Fig2_Ferramentas_u8.bmp", cv2.IMREAD_GRAYSCALE)
+img = cv2.imread("Visao_de_maquina\aps2\Figuras_APS2\Fig2_Ferramentas_u8.bmp", cv2.IMREAD_GRAYSCALE)
 if img is None:
     print("File not found. Bye!")
     exit(0)
