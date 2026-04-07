@@ -2,12 +2,12 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
-img = cv2.imread("aps1\Figuras_APS1\Fig_APS1_1a.bmp", cv2.IMREAD_GRAYSCALE)
+img = cv2.imread("Visao_de_maquina/aps1/Figuras_APS1/Fig_APS1_1a.bmp", cv2.IMREAD_GRAYSCALE)
 if img is None:
     print("File 1 not found. Bye!")
     exit(0)
 
-logo = cv2.imread("aps1\Figuras_APS1\Fig_APS1_1b.bmp", cv2.IMREAD_GRAYSCALE)
+logo = cv2.imread("Visao_de_maquina/aps1/Figuras_APS1/Fig_APS1_1b.bmp", cv2.IMREAD_GRAYSCALE)
 if logo is None:
     print("File 2 not found. Bye!")
     exit(0)

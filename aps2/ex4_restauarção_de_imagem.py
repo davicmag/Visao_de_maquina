@@ -1,3 +1,4 @@
+import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -23,10 +24,10 @@ def calcula_homografia(src, dst):
     ], dtype=np.float64)
     return H
 
-img = np.array(Image.open(r"Visao_de_maquina\Figuras_APS2\Fig4_Campo_Persp1a.bmp").convert("L"))
+img = cv2.imread("Visao_de_maquina/aps2/Figuras_APS2/Fig4_Campo_Persp1a.bmp", cv2.IMREAD_GRAYSCALE)
 h, w = img.shape
 
-img_ref = np.array(Image.open(r"Visao_de_maquina\Figuras_APS2\fig4_campo_exemplo.png").convert("L"))
+img_ref = cv2.imread("Visao_de_maquina/aps2/Figuras_APS2/fig4_campo_exemplo.png", cv2.IMREAD_GRAYSCALE)
 
 fig, ax = plt.subplots(1, 2, figsize=(14, 6))
 
@@ -120,7 +121,7 @@ ax[1].set_title("Imagem retificada")
 
 ax[2].imshow(img_crop, cmap='gray')
 ax[2].axvline(x=min(col_255), color='red', linewidth=2)
-ax[2].set_title("Recorte + linha vermelha")
+ax[2].set_title("Recorte + linha impedimento")
 
 for a in ax:
     a.axis("on")

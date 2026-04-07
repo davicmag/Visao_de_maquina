@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 
 # read video
-cap = cv2.VideoCapture('aps1\Figuras_APS1\Video_APS1_4.mp4')
+cap = cv2.VideoCapture('Visao_de_maquina/aps1/Figuras_APS1/Video_APS1_4.mp4')
 num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 print("Nro frames = ", num_frames)
 

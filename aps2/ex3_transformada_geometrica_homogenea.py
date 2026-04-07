@@ -2,24 +2,24 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
-base_original = cv2.imread("Figuras_APS2/Fig3_Base.bmp", cv2.IMREAD_GRAYSCALE)
+base_original = cv2.imread("Visao_de_maquina/aps2/Figuras_APS2/Fig3_Base.bmp", cv2.IMREAD_GRAYSCALE)
 if base_original is None:
     print("File not found. Bye!")
     exit(0)
 
-arm1_original = cv2.imread("Figuras_APS2/Fig3_Arm1.bmp", cv2.IMREAD_GRAYSCALE)
+arm1_original = cv2.imread("Visao_de_maquina/aps2/Figuras_APS2/Fig3_Arm1.bmp", cv2.IMREAD_GRAYSCALE)
 if arm1_original is None:
     print("File not found. Bye!")
     exit(0)
 
-arm2_original = cv2.imread("Figuras_APS2/Fig3_Arm2.bmp", cv2.IMREAD_GRAYSCALE)
+arm2_original = cv2.imread("Visao_de_maquina/aps2/Figuras_APS2/Fig3_Arm2.bmp", cv2.IMREAD_GRAYSCALE)
 if arm2_original is None:
     print("File not found. Bye!")
     exit(0)
 
 import numpy as np
 
-dados_mvimento = np.loadtxt("Robo_Cinematica.csv", delimiter=";", skiprows=1)
+dados_mvimento = np.loadtxt("Visao_de_maquina/aps2/Robo_Cinematica.csv", delimiter=";", skiprows=1)
 
 theta1_vals = dados_mvimento[:, 0]
 theta2_vals = dados_mvimento[:, 1]

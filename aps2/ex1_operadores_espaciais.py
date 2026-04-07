@@ -3,18 +3,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-seixosP = cv2.imread("Visao_de_maquina\aps2\Figuras_APS2\Fig1_SeixoP.bmp", cv2.IMREAD_GRAYSCALE)
+seixosP = cv2.imread("Visao_de_maquina/aps2/Figuras_APS2/Fig1_SeixoP.bmp", cv2.IMREAD_GRAYSCALE)
 if seixosP is None:
     print("File 1 not found. Bye!")
     exit(0)
 
-seixosM = cv2.imread("Visao_de_maquina\aps2\Figuras_APS2\Fig1_SeixoM.bmp", cv2.IMREAD_GRAYSCALE)
+seixosM = cv2.imread("Visao_de_maquina/aps2/Figuras_APS2/Fig1_SeixoM.bmp", cv2.IMREAD_GRAYSCALE)
 if seixosM is None:
     print("File 2 not found. Bye!")
     exit(0)
 
 
-seixosG = cv2.imread("Visao_de_maquina\aps2\Figuras_APS2\Fig1_SeixoG.bmp", cv2.IMREAD_GRAYSCALE)
+seixosG = cv2.imread("Visao_de_maquina/aps2/Figuras_APS2/Fig1_SeixoG.bmp", cv2.IMREAD_GRAYSCALE)
 if seixosG is None:
     print("File 3 not found. Bye!")
     exit(0)
