@@ -18,7 +18,7 @@ params.blobColor = 255
 # Filter by Area
 params.filterByArea = True
 params.minArea = 1000
-params.maxArea = 20000
+params.maxArea = 30000
 
 # Filter by Circularity
 params.filterByCircularity = False
@@ -40,20 +40,16 @@ detector = cv2.SimpleBlobDetector_create(params)
 
 img_bin = np.zeros((h, w), dtype=np.uint8)
 
-img_bin = np.where(img < 190, 0, 255).astype(np.uint8)
+img_bin = np.where(img < 250, 255, 0).astype(np.uint8)
 
 
-#display image (with text)
-cv2.imshow("Img binary", img_bin)
-
-#aguarda uma tecla
-cv2.waitKey(0)
+img_close = cv2.morphologyEx(img_bin, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
 
 # Detect blobs
-KP = detector.detect(img_bin)
+KP = detector.detect(img_close)
 print("Nro de blobs: ",len(KP))
 
-mask_blobs = selectBlob(img_bin, KP)
+mask_blobs = selectBlob(img_close, KP)
 
 contours, hierarchy = cv2.findContours(mask_blobs, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -69,13 +65,13 @@ for cnt in contours:
     cv2.putText(img1_text, str(i), (int(x), int(y)), cv2.FONT_HERSHEY_PLAIN, 1, (0,0,255))
     area = np.pi*(d1/2)*(d2/2)
     print("Area_", i, "=", area)
-    if area < 3000:
+    if area < 3100:
         valor += 0.1
         cv2.putText(img1_text, "$ 0.10", (int(x), int(y)+15), cv2.FONT_HERSHEY_PLAIN, 1, (0,0,255))
-    elif area < 3300:
+    elif area < 3400:
         valor += 0.01
         cv2.putText(img1_text, "$ 0.01", (int(x), int(y)+15), cv2.FONT_HERSHEY_PLAIN, 1, (0,0,255))
-    elif area < 4000:
+    elif area < 4100:
         valor += 0.05
         cv2.putText(img1_text, "$ 0.05", (int(x), int(y)+15), cv2.FONT_HERSHEY_PLAIN, 1, (0,0,255))
     else:
