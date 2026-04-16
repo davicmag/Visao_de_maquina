@@ -9,6 +9,18 @@ if img is None:
     exit(0)
 h, w, l = img.shape
 
+img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+plt.figure('Fig Color')
+plt.imshow(img_rgb)
+plt.axis('off')
+
+(canal_r, canal_g, canal_b) = cv2.split(img_rgb)
+
+img_final = np.where((canal_b > 140 or ()), 255, 0).astype(np.uint8)
+plt.figure('Final')
+plt.imshow(img_final, cmap='gray')
+plt.axis('off')
+
 params = cv2.SimpleBlobDetector_Params()
 
 # Set blob color (0=black, 255=white)
@@ -38,24 +50,6 @@ params.filterByInertia = False
 # Set up the detector with default parameters.
 detector = cv2.SimpleBlobDetector_create(params)
 
-img_bin = np.zeros((h, w), dtype=np.uint8)
-
-img_bin = np.where(img < 250, 255, 0).astype(np.uint8)
-
-
-img_close = cv2.morphologyEx(img_bin, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)))
-
-# Detect blobs
-KP = detector.detect(img_close)
-print("Nro de blobs: ",len(KP))
-
-mask_blobs = selectBlob(img_close, KP)
-
-img1_text = cv2.cvtColor(img,cv2.COLOR_GRAY2RGB)
-
-valor = 0
-i=1
-
 plt.figure('img with text')
-plt.imshow(img_close, cmap='gray',vmin=0, vmax=255)
+plt.imshow(img)
 plt.show()
