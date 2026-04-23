@@ -2,6 +2,8 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 from library.selectBlob import *
+from skimage.morphology import skeletonize
+
 
 img = cv2.imread("Projeto intermediario/Dataset_Projeto1/_Eucalipto_Escolhidos1/Eucalipto1.jpg")
 if img is None:
@@ -82,23 +84,50 @@ mascara_vaso_ajustada = cv2.dilate(mascara_vaso, kernel, iterations=1)
 img_planta = cv2.subtract(mask_fundo, mascara_vaso_ajustada)
 
 
+# Isolando o caule 
 
+# Esqueletiza a máscara da planta para obter a linha central
+img_planta_bool = img_planta.astype(bool)
+skeleton = skeletonize(img_planta_bool).astype(np.uint8) * 255
 
+# Analisa componentes conectados do esqueleto
+num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(skeleton, connectivity=8)
 
+#  Seleciona o componente do esqueleto mais vertical e mais longo
+melhor_id = -1
+melhor_score = -1
 
+for i in range(1, num_labels):
+    area  = stats[i, cv2.CC_STAT_AREA]
+    w_cc  = stats[i, cv2.CC_STAT_WIDTH]
+    h_cc  = stats[i, cv2.CC_STAT_HEIGHT]
 
+    if area < 30:          # ignora ruídos pequenos
+        continue
 
+    # quanto mais alto e fino, mais provável de ser o caule
+    verticalidade = h_cc / (w_cc + 1)
+    score = area * verticalidade
 
+    if score > melhor_score:
+        melhor_score = score
+        melhor_id = i
 
+# Máscara do esqueleto do caule
+skeleton_caule = np.uint8(labels == melhor_id) * 255
 
+# Dilata o esqueleto para reconstruir a espessura real do caule
+# Ajuste o tamanho do kernel conforme a espessura do caule na imagem
+espessura_caule = 7   # px — aumente se o caule for mais grosso
+kernel_caule = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (espessura_caule, espessura_caule))
+mascara_caule = cv2.dilate(skeleton_caule, kernel_caule, iterations=2)
 
+# Intersecta com a máscara original para não vazar para fora da planta
+mascara_caule = cv2.bitwise_and(mascara_caule, img_planta)
 
-
-
-
-
-
-
+# Fecha pequenos buracos internos
+kernel_close = np.ones((5, 5), np.uint8)
+mascara_caule = cv2.morphologyEx(mascara_caule, cv2.MORPH_CLOSE, kernel_close)
 
 # Remove pequenos ruídos da imagem
 num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(img_planta, connectivity=8)
@@ -113,6 +142,18 @@ for i in range(1, num_labels):
 #plt.figure("Imagem Limpa")
 #plt.imshow(img_limpa, cmap='gray')
 #plt.axis('off')
+
+
+# Subtrai caule da imagem da planta
+mask_folhas = cv2.subtract(img_planta, mascara_caule)
+
+plt.figure("Folhas sem caule")
+plt.imshow(mask_folhas, cmap='gray')
+plt.axis('off')
+
+
+
+
 
 
 # Detecta as folhas
