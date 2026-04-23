@@ -5,7 +5,7 @@ from library.selectBlob import *
 from skimage.morphology import skeletonize
 
 
-img = cv2.imread("Projeto intermediario/Dataset_Projeto1/_Eucalipto_Escolhidos1/Eucalipto5.jpg")
+img = cv2.imread("/Users/rodrigopiccini/Desktop/Faculdade/7_Semestre/Visão de Máquina/Visao_de_maquina/Projeto intermediario/Dataset_Projeto1/_Eucalipto_Escolhidos1/Eucalipto1.jpg")
 if img is None:
     print("File not found. Bye!")
     exit(0)
