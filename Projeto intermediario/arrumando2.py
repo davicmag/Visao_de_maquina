@@ -235,6 +235,8 @@ dist_caule = cv2.distanceTransform(255 - mask_linha, cv2.DIST_L2, 5)
 # Mantém só o que está mais perto do caule do que da borda
 mascara_caule = np.zeros_like(img_limpa, dtype=np.uint8)
 
+
+
 mask = dist_caule <= (dist_bg * 8)
 
 # remove pixels muito longe do eixo (folhas grudadas)
@@ -435,6 +437,7 @@ plt.imshow(img_caule_overlay)
 plt.axis('off')
 
 
+
 # altura vertical da planta
 ys, xs = np.where(img_limpa > 0)
 altura_planta = ys.max() - ys.min()
@@ -462,14 +465,11 @@ p2 = max(endpoints, key=lambda p: p[1])  # base
 
 path = bfs_path(mask_caule, p2, p1)
 
-# Comprimento real pelo caminho do esqueleto
-comprimento = 0
-for i in range(1, len(caminho_filtrado)):
-    x1, y1 = caminho_filtrado[i-1]
-    x2, y2 = caminho_filtrado[i]
-    comprimento += np.sqrt((x2-x1)**2 + (y2-y1)**2)
+# Comprimento pelo caminho do esqueleto
+comprimento = np.sum(mask_linha > 0)
 
 print("Comprimento do caule (pixels):", comprimento)
+
 
 # Calculando diâmetro médio do caule
 # garante que o caminho está na ordem base - topo

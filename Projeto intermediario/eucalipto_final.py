@@ -12,8 +12,12 @@ pasta = "Projeto intermediario/Dataset_Projeto1/_Eucalipto_Escolhidos1"
 arquivos = [f for f in os.listdir(pasta) if f.lower().endswith(('.jpg', '.png', '.jpeg'))]
 
 resultados = []
+imagem = 0
 
 for idx, nome_arquivo in enumerate(arquivos):
+    imagem += 1
+
+    print("Processando Imagem", imagem)
 
     caminho_img = os.path.join(pasta, nome_arquivo)
     img = cv2.imread(caminho_img)
@@ -90,18 +94,12 @@ for idx, nome_arquivo in enumerate(arquivos):
             img_limpa[labels == i] = 255
 
 
-
-
-
-
-
-
     # Isolando o caule: 
     # Esqueletiza a máscara da planta para obter a linha central
     img_planta_bool = img_limpa.astype(bool)
     skeleton = skeletonize(img_planta_bool).astype(np.uint8) * 255
 
-    # Função: vizinhos 8-conectados
+    # Função vizinhos conectados
     def neighbors8(x, y, skel):
         h, w = skel.shape
         pts = []
@@ -190,12 +188,9 @@ for idx, nome_arquivo in enumerate(arquivos):
 
         return best_path
 
-
+    # so corta na primeira ramificação encontrada no terço superior do caule, ramificações no meio (folhas laterais) são ignoradas
     def trim_stem_at_first_branch(path, skel, min_length_ratio=0.75):
-        """
-        Só corta na primeira ramificação encontrada no TERÇO SUPERIOR do caule.
-        Ramificações no meio (folhas laterais) são ignoradas.
-        """
+  
         if not path:
             return path
 
@@ -219,8 +214,6 @@ for idx, nome_arquivo in enumerate(arquivos):
         mask_caule[y, x] = 255
 
 
-
-
     # Engrossa até cobrir o caule real
     # Distância até a borda da planta
     dist_bg = cv2.distanceTransform(img_limpa, cv2.DIST_L2, 5)
@@ -229,22 +222,8 @@ for idx, nome_arquivo in enumerate(arquivos):
     def grau_no(x, y, skel):
         return len(neighbors8(x, y, skel))
 
-    def trim_stem_at_first_branch(path, skel, min_length_ratio=0.3):
-        if not path:
-            return path
-        min_idx = int(len(path) * min_length_ratio)
-        for i, (x, y) in enumerate(path):
-            if i < min_idx:
-                continue
-            if grau_no(x, y, skel) >= 3:
-                return path[:i]
-        return path
-
     caminho_filtrado = trim_stem_at_first_branch(caminho_caule, skeleton, min_length_ratio=0.75)
 
-
-
-        
 
     # Distância até o caminho do caule
     mask_linha = np.zeros_like(img_limpa, dtype=np.uint8)
@@ -272,24 +251,6 @@ for idx, nome_arquivo in enumerate(arquivos):
     mask_folhas = cv2.dilate(mask_folhas, kernel, iterations=1)
 
     # Contando as folhas:
-    # Encontrar endpoints
-    def find_endpoints(skel):
-        endpoints = []
-        h, w = skel.shape
-
-        for y in range(h):
-            for x in range(w):
-                if skel[y, x] == 0:
-                    continue
-
-                vizinhos = neighbors8(x, y, skel)
-
-                if len(vizinhos) == 1:
-                    endpoints.append((x, y))
-
-        return endpoints
-
-
     # Medir comprimento do ramo
     def branch_length(skel, start):
         visited = set()
@@ -323,7 +284,7 @@ for idx, nome_arquivo in enumerate(arquivos):
         return length
 
 
-    # Pipeline completo
+    # função para contar as ponats (folhas)
     def contar_pontas(skeleton, min_length=10):
         
         # encontra endpoints
@@ -344,42 +305,14 @@ for idx, nome_arquivo in enumerate(arquivos):
     # chama função
     endpoints_final = contar_pontas(skeleton, min_length=40)
 
-
     num_brancos = cv2.countNonZero(mask_folhas)
 
-
-    # Desenhando contornos na imagem original
-    # encontra contornos na máscara
-    contornos, _ = cv2.findContours(mask_folhas, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    # copia imagem original
-    img_contorno = img_rgb.copy()
-
-    # desenha contornos em vermelho
-    cv2.drawContours(img_contorno, contornos, -1, (255, 0, 0), 2)
-
-
-    # cria uma cópia da imagem original
-    img_caule_overlay = img_contorno.copy()
-
-    # onde tem caule pinta de azul
-    img_caule_overlay[mascara_caule == 255] = [0, 0, 255]  
 
     # altura vertical da planta
     ys, xs = np.where(img_limpa > 0)
     altura_planta = ys.max() - ys.min()
 
-
-
-
-    
-
-
-
-
-
     if len(caminho_filtrado) == 0:
-        print(f"[ERRO] Caminho do caule vazio: {nome_arquivo}")
         comprimento = altura_planta
         diametro = 0
 
@@ -397,14 +330,10 @@ for idx, nome_arquivo in enumerate(arquivos):
         xs_linha = np.where(linha > 0)[0]
         diametro = (xs_linha.max() - xs_linha.min())+2
 
+        # comprimento pelo caminho do esqueleto
+        comprimento = np.sum(mask_linha > 0)
 
-        # comprimento total do caule
-        comprimento = 0
-        for i in range(1, len(caminho_filtrado)):
-            x1, y1 = caminho_filtrado[i-1]
-            x2, y2 = caminho_filtrado[i]
-            comprimento += np.sqrt((x2-x1)**2 + (y2-y1)**2)
-
+    
 
 
     # Número de folhas
@@ -433,5 +362,5 @@ for idx, nome_arquivo in enumerate(arquivos):
     })
 
 df = pd.DataFrame(resultados)
-df.to_csv("resultados_plantas.csv", index=False)
+df.to_csv("esultado_eucaliptos.csv", index=False)
 print("CSV gerado com sucesso!")
