@@ -267,6 +267,10 @@ for idx, nome_arquivo in enumerate(arquivos):
     # Subtrai caule da imagem da planta
     mask_folhas = cv2.subtract(img_limpa, mascara_caule)
 
+    # Aumenta para recuperar pixels perdidos
+    kernel = np.ones((3,3), np.uint8)
+    mask_folhas = cv2.dilate(mask_folhas, kernel, iterations=1)
+
     # Contando as folhas:
     # Encontrar endpoints
     def find_endpoints(skel):
@@ -361,42 +365,45 @@ for idx, nome_arquivo in enumerate(arquivos):
     # onde tem caule pinta de azul
     img_caule_overlay[mascara_caule == 255] = [0, 0, 255]  
 
+    # altura vertical da planta
+    ys, xs = np.where(img_limpa > 0)
+    altura_planta = ys.max() - ys.min()
 
-    ys, xs = np.where(mascara_caule == 255)
+
+
+
+    
+
+
+
+
 
     if len(caminho_filtrado) == 0:
         print(f"[ERRO] Caminho do caule vazio: {nome_arquivo}")
-        altura_caule = 0
-        comprimento = 0
+        comprimento = altura_planta
         diametro = 0
 
     else:
-        # altura
-        ys_path = [p[1] for p in caminho_filtrado]
-        altura_caule = max(ys_path) - min(ys_path)
+        # diâmetro
+        # encontra a base
+        ys, xs = np.where(mascara_caule > 0)
+        y_base = ys.max()
+
+        # sobe 10 pixels
+        y_target = y_base - 10
+
+        # mede a largura horizontal
+        linha = mascara_caule[y_target]
+        xs_linha = np.where(linha > 0)[0]
+        diametro = (xs_linha.max() - xs_linha.min())+2
 
 
-
-        # comprimento
+        # comprimento total do caule
         comprimento = 0
         for i in range(1, len(caminho_filtrado)):
             x1, y1 = caminho_filtrado[i-1]
             x2, y2 = caminho_filtrado[i]
             comprimento += np.sqrt((x2-x1)**2 + (y2-y1)**2)
-
-
-
-        # diâmetro
-        path_sorted = sorted(caminho_filtrado, key=lambda p: p[1], reverse=True)
-
-        idx = min(10, len(path_sorted) - 1)
-        x, y = path_sorted[idx]
-
-        dist = cv2.distanceTransform(mascara_caule, cv2.DIST_L2, 5)
-        diametro = 2 * dist[y, x]
-
-  
-
 
 
 
@@ -407,7 +414,7 @@ for idx, nome_arquivo in enumerate(arquivos):
     area = cv2.countNonZero(mask_folhas)
 
     # Altura vertical
-    altura = altura_caule
+    altura = altura_planta
 
     # Comprimento total
     compr = comprimento
