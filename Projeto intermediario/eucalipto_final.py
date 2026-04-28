@@ -9,7 +9,7 @@ import pandas as pd
 
 pasta = "Projeto intermediario/Dataset_Projeto1/_Eucalipto_Escolhidos1"
 
-arquivos = [f for f in os.listdir(pasta) if f.lower().endswith(('.jpg', '.png', '.jpeg'))]
+arquivos = sorted([f for f in os.listdir(pasta) if f.lower().endswith(('.jpg','.png','.jpeg'))])
 
 resultados = []
 imagem = 0
@@ -131,7 +131,7 @@ for idx, nome_arquivo in enumerate(arquivos):
 
         return endpoints
 
-
+    # Função para buscar em largura para encontrar o caminho entre dois pontos no esqueleto
     def bfs_path(skel, start, goal):
         visited = set()
         queue = deque([(start, [start])])
@@ -149,7 +149,7 @@ for idx, nome_arquivo in enumerate(arquivos):
 
         return []
 
-
+    # Busca em largura (BFS) para encontrar o caminho entre dois pontos no esqueleto partindo da base da planta até o endpoint com maior extensão vertical
     def extract_stem(skel):
         endpoints = find_endpoints(skel)
 
@@ -188,6 +188,11 @@ for idx, nome_arquivo in enumerate(arquivos):
 
         return best_path
 
+        
+    # Retorna o grau (número de vizinhos) de um nó no esqueleto
+    def grau_no(x, y, skel):
+        return len(neighbors8(x, y, skel))
+
     # so corta na primeira ramificação encontrada no terço superior do caule, ramificações no meio (folhas laterais) são ignoradas
     def trim_stem_at_first_branch(path, skel, min_length_ratio=0.75):
   
@@ -207,21 +212,14 @@ for idx, nome_arquivo in enumerate(arquivos):
 
     caminho_caule = extract_stem(skeleton)
 
-    mask_caule = np.zeros_like(img_planta)
-
-
-    for x, y in caminho_caule:
-        mask_caule[y, x] = 255
-
+  
 
     # Engrossa até cobrir o caule real
     # Distância até a borda da planta
     dist_bg = cv2.distanceTransform(img_limpa, cv2.DIST_L2, 5)
 
 
-    def grau_no(x, y, skel):
-        return len(neighbors8(x, y, skel))
-
+    
     caminho_filtrado = trim_stem_at_first_branch(caminho_caule, skeleton, min_length_ratio=0.75)
 
 
@@ -302,10 +300,8 @@ for idx, nome_arquivo in enumerate(arquivos):
 
         return endpoints_filtrados
 
-    # chama função
-    endpoints_final = contar_pontas(skeleton, min_length=40)
 
-    num_brancos = cv2.countNonZero(mask_folhas)
+    endpoints_final = contar_pontas(skeleton, min_length=40)
 
 
     # altura vertical da planta
@@ -331,8 +327,7 @@ for idx, nome_arquivo in enumerate(arquivos):
         diametro = (xs_linha.max() - xs_linha.min())+2
 
         # comprimento pelo caminho do esqueleto
-        comprimento = np.sum(mask_linha > 0)
-
+        comprimento = sum(np.hypot(caminho_filtrado[i][0] - caminho_filtrado[i-1][0],caminho_filtrado[i][1] - caminho_filtrado[i-1][1])for i in range(1, len(caminho_filtrado)))
     
 
 
@@ -362,5 +357,5 @@ for idx, nome_arquivo in enumerate(arquivos):
     })
 
 df = pd.DataFrame(resultados)
-df.to_csv("esultado_eucaliptos.csv", index=False)
+df.to_csv("resultado_eucaliptos.csv", index=False)
 print("CSV gerado com sucesso!")
