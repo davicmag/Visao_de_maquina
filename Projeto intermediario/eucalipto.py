@@ -1,178 +1,361 @@
 import cv2
-import matplotlib.pyplot as plt
 import numpy as np
 from library.selectBlob import *
 from skimage.morphology import skeletonize
+from collections import deque
+import os
+import pandas as pd
 
-img = cv2.imread("Visao_de_maquina/Projeto intermediario/Dataset_Projeto1/_Eucalipto_Escolhidos1/Eucalipto1.jpg")
-if img is None:
-    print("File not found. Bye!")
-    exit(0)
-h, w, l = img.shape
 
-img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+pasta = "Projeto intermediario/Dataset_Projeto1/_Eucalipto_Escolhidos1"
 
-(canal_r, canal_g, canal_b) = cv2.split(img_rgb)
+arquivos = sorted([f for f in os.listdir(pasta) if f.lower().endswith(('.jpg','.png','.jpeg'))])
 
-mask_fundo = np.where((canal_b > 140), 0, 255).astype(np.uint8)
+resultados = []
+imagem = 0
 
-kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (20, 3))
+for idx, nome_arquivo in enumerate(arquivos):
+    imagem += 1
 
-mask_erodida = cv2.erode(mask_fundo, kernel, iterations=2)
+    print("Processando Imagem", imagem)
 
-num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(mask_erodida, connectivity=8)
+    caminho_img = os.path.join(pasta, nome_arquivo)
+    img = cv2.imread(caminho_img)
 
-melhor_id = -1
-melhor_score = -1
-
-for i in range(1, num_labels):
-    area = stats[i, cv2.CC_STAT_AREA]
-    x = stats[i, cv2.CC_STAT_LEFT]
-    y = stats[i, cv2.CC_STAT_TOP]
-    w = stats[i, cv2.CC_STAT_WIDTH]
-    h = stats[i, cv2.CC_STAT_HEIGHT]
-    cy = centroids[i][1]
-
-    if area < 300:
+    if img is None:
+        print(f"Erro ao abrir {nome_arquivo}")
         continue
 
-    score = area + cy * 5
+    # Converte imagem para RGB e Mostra
+    img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-    if score > melhor_score:
-        melhor_score = score
-        melhor_id = i
+    # Separa em 3 canais
+    (canal_r, canal_g, canal_b) = cv2.split(img_rgb)
 
-mascara_vaso = np.uint8(labels == melhor_id) * 255
+    # Gera mascara inicial (remove o fundo)
+    mask_fundo = np.where((canal_b > 140), 0, 255).astype(np.uint8)
 
-kernel_fill = np.ones((15, 15), np.uint8)
-mascara_vaso = cv2.morphologyEx(mascara_vaso, cv2.MORPH_CLOSE, kernel_fill)
+    # Separando vaso da planta
+    # kernel um pouco maior que a espessura do caule
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (20, 3))
 
-kernel = np.ones((5, 40), np.uint8)
-mascara_vaso_ajustada = cv2.dilate(mascara_vaso, kernel, iterations=1)
+    # erosão para quebrar a ligação planta-vaso
+    mask_erodida = cv2.erode(mask_fundo, kernel, iterations=2)
 
-img_planta = cv2.subtract(mask_fundo, mascara_vaso_ajustada)
+    # detectar componentes conectados na imagem erodida
+    num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(mask_erodida, connectivity=8)
 
-img_planta_bool = img_planta.astype(bool)
-skeleton = skeletonize(img_planta_bool).astype(np.uint8) * 255
+    # escolhe o componente mais baixo e com área suficiente
+    melhor_id = -1
+    melhor_score = -1
 
-num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(skeleton, connectivity=8)
+    for i in range(1, num_labels):
 
-melhor_id = -1
-melhor_score = -1
+        area = stats[i, cv2.CC_STAT_AREA]
+        x = stats[i, cv2.CC_STAT_LEFT]
+        y = stats[i, cv2.CC_STAT_TOP]
+        w = stats[i, cv2.CC_STAT_WIDTH]
+        h = stats[i, cv2.CC_STAT_HEIGHT]
+        cy = centroids[i][1]
 
-for i in range(1, num_labels):
-    area  = stats[i, cv2.CC_STAT_AREA]
-    w_cc  = stats[i, cv2.CC_STAT_WIDTH]
-    h_cc  = stats[i, cv2.CC_STAT_HEIGHT]
+        if area < 300:
+            continue
 
-    if area < 30:
-        continue
+        # favorece o objeto mais abaixo na imagem
+        score = area + cy * 5
 
-    verticalidade = h_cc / (w_cc + 1)
-    score = area * verticalidade
+        if score > melhor_score:
+            melhor_score = score
+            melhor_id = i
 
-    if score > melhor_score:
-        melhor_score = score
-        melhor_id = i
 
-skeleton_caule = np.uint8(labels == melhor_id) * 255
+    # gera máscara só do vaso
+    mascara_vaso = np.uint8(labels == melhor_id) * 255
 
-espessura_caule = 7
-kernel_caule = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (espessura_caule, espessura_caule))
-mascara_caule = cv2.dilate(skeleton_caule, kernel_caule, iterations=2)
+    # fecha pequenos buracos pretos dentro do vaso
+    kernel_fill = np.ones((15, 15), np.uint8)
+    mascara_vaso = cv2.morphologyEx(mascara_vaso, cv2.MORPH_CLOSE, kernel_fill)
 
-mascara_caule = cv2.bitwise_and(mascara_caule, img_planta)
+    # Aumenta um pouco a mascara para não ficar com "bordas" na hora de subtrair (maior e Y para não prejudicar o caule)
+    kernel = np.ones((5, 40), np.uint8)
+    mascara_vaso_ajustada = cv2.dilate(mascara_vaso, kernel, iterations=1)
 
-kernel_close = np.ones((5, 5), np.uint8)
-mascara_caule = cv2.morphologyEx(mascara_caule, cv2.MORPH_CLOSE, kernel_close)
+    # Subtrai vaso da imagem vaso+planta
+    img_planta = cv2.subtract(mask_fundo, mascara_vaso_ajustada)
 
-num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(img_planta, connectivity=8)
-img_limpa = np.zeros_like(img_planta)
+    # Remove ruídos da imagem
+    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(img_planta, connectivity=8)
+    img_limpa = np.zeros_like(img_planta)
 
-for i in range(1, num_labels):  
-    area = stats[i, cv2.CC_STAT_AREA]
+    for i in range(1, num_labels):  
+        area = stats[i, cv2.CC_STAT_AREA]
 
-    if area > 685:  
-        img_limpa[labels == i] = 255
+        if area > 685:  
+            img_limpa[labels == i] = 255
 
-mask_folhas = cv2.subtract(img_planta, mascara_caule)
 
-plt.figure("Folhas sem caule")
-plt.imshow(mask_folhas, cmap='gray')
-plt.axis('off')
+    # Isolando o caule: 
+    # Esqueletiza a máscara da planta para obter a linha central
+    img_planta_bool = img_limpa.astype(bool)
+    skeleton = skeletonize(img_planta_bool).astype(np.uint8) * 255
 
-params = cv2.SimpleBlobDetector_Params()
+    # Função vizinhos conectados
+    def neighbors8(x, y, skel):
+        h, w = skel.shape
+        pts = []
 
-params.filterByColor = True
-params.blobColor = 255
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                if dx == 0 and dy == 0:
+                    continue
 
-params.filterByArea = True
-params.minArea = 1000
-params.maxArea = 30000
+                xx, yy = x + dx, y + dy
 
-params.filterByCircularity = False
+                if 0 <= xx < w and 0 <= yy < h and skel[yy, xx] > 0:
+                    pts.append((xx, yy))
 
-params.filterByConvexity = False
+        return pts
 
-params.filterByInertia = False
+    # Função para encontrar as pontas
+    def find_endpoints(skel):
+        endpoints = []
+        h, w = skel.shape
 
-detector = cv2.SimpleBlobDetector_create(params)
+        for y in range(h):
+            for x in range(w):
+                if skel[y, x] == 0:
+                    continue
 
-keypoints = detector.detect(img_limpa)
+                if len(neighbors8(x, y, skel)) == 1:
+                    endpoints.append((x, y))
 
-print("Numero de folhas detectadas:", len(keypoints))
+        return endpoints
 
-img_blob = cv2.drawKeypoints(img_limpa, keypoints, np.array([]), (0, 255, 0), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+    # Função para buscar em largura para encontrar o caminho entre dois pontos no esqueleto
+    def bfs_path(skel, start, goal):
+        visited = set()
+        queue = deque([(start, [start])])
 
-plt.show()
+        while queue:
+            (x, y), path = queue.popleft()
 
-area = cv2.countNonZero(mask_folhas)
+            if (x, y) == goal:
+                return path
 
-dist = cv2.distanceTransform(mascara_caule, cv2.DIST_L2, 5)
+            for nx, ny in neighbors8(x, y, skel):
+                if (nx, ny) not in visited:
+                    visited.add((nx, ny))
+                    queue.append(((nx, ny), path + [(nx, ny)]))
 
-y_base = -1
-for y in range(h-1, -1, -1):
-    if np.any(mascara_caule[y, :] == 255):
-        y_base = y
-        break
+        return []
 
-y_alvo = max(0, y_base - 10)
+    # Busca em largura (BFS) para encontrar o caminho entre dois pontos no esqueleto partindo da base da planta até o endpoint com maior extensão vertical
+    def extract_stem(skel):
+        endpoints = find_endpoints(skel)
 
-faixa = 2
+        if len(endpoints) < 2:
+            return []
 
-ys_caule, xs_caule = np.where(mascara_caule == 255)
+        h, w = skel.shape
 
-if len(ys_caule) > 0:
-    y_base = np.max(ys_caule)
-else:
-    y_base = 0
+        # Base da planta (mais baixo e mais central)
+        base = max(endpoints, key=lambda p: (p[1], -abs(p[0] - w//2)))
 
-y_alvo = max(0, y_base - 10)
+        def path_score(path):
+            ys = [p[1] for p in path]
+            xs = [p[0] for p in path]
+            altura = max(ys) - min(ys)
+            lateral = np.std(xs)
+            return altura - 0.5 * lateral
 
-faixa = 2
+        best_path = []
+        best_score = -1
 
-ys_caule, xs_caule = np.where(mascara_caule == 255)
+        for ep in endpoints:
+            if ep == base:
+                continue
 
-if len(ys_caule) > 0:
-    y_base = np.max(ys_caule)
-else:
-    y_base = 0
+            path = bfs_path(skel, base, ep)
 
-y_alvo = max(0, y_base - 10)
+            if len(path) < 5:
+                continue
 
-mask = np.abs(ys_caule - y_alvo) <= faixa
+            score = path_score(path)
 
-if np.sum(mask) > 0:
-    raios = dist[ys_caule[mask], xs_caule[mask]]
-    largura = 2 * np.mean(raios)
-else:
-    largura = 0
+            if score > best_score:
+                best_score = score
+                best_path = path
 
-print("Largura 10px acima da base (linha {}): {}".format(y_alvo, largura))
-print("Area total das folhas:", area, "pixels")
+        return best_path
 
-plt.figure('mascara caule')
-plt.imshow(mascara_caule, cmap='gray')
-plt.axis('off')
+        
+    # Retorna o grau (número de vizinhos) de um nó no esqueleto
+    def grau_no(x, y, skel):
+        return len(neighbors8(x, y, skel))
 
-plt.show()
+    # so corta na primeira ramificação encontrada no terço superior do caule, ramificações no meio (folhas laterais) são ignoradas
+    def trim_stem_at_first_branch(path, skel, min_length_ratio=0.75):
+  
+        if not path:
+            return path
+
+        min_idx = int(len(path) * min_length_ratio)
+
+        for i, (x, y) in enumerate(path):
+            if i < min_idx:
+                continue  # ignora ramificações nos primeiros 75% do caminho
+
+            if grau_no(x, y, skel) >= 3:
+                return path[:i]
+
+        return path
+
+    caminho_caule = extract_stem(skeleton)
+
+  
+
+    # Engrossa até cobrir o caule real
+    # Distância até a borda da planta
+    dist_bg = cv2.distanceTransform(img_limpa, cv2.DIST_L2, 5)
+
+
+    
+    caminho_filtrado = trim_stem_at_first_branch(caminho_caule, skeleton, min_length_ratio=0.75)
+
+
+    # Distância até o caminho do caule
+    mask_linha = np.zeros_like(img_limpa, dtype=np.uint8)
+    for x, y in caminho_filtrado:
+        mask_linha[y, x] = 255
+
+    dist_caule = cv2.distanceTransform(255 - mask_linha, cv2.DIST_L2, 5)
+
+    # Mantém só o que está mais perto do caule do que da borda
+    mascara_caule = np.zeros_like(img_limpa, dtype=np.uint8)
+
+    mask = dist_caule <= (dist_bg * 8)
+
+    # remove pixels muito longe do eixo (folhas grudadas)
+    mask &= dist_caule < 9
+
+    mascara_caule[mask] = 255
+
+
+    # Subtrai caule da imagem da planta
+    mask_folhas = cv2.subtract(img_limpa, mascara_caule)
+
+    # Aumenta para recuperar pixels perdidos
+    kernel = np.ones((3,3), np.uint8)
+    mask_folhas = cv2.dilate(mask_folhas, kernel, iterations=1)
+
+    # Contando as folhas:
+    # Medir comprimento do ramo
+    def branch_length(skel, start):
+        visited = set()
+        current = start
+        prev = None
+        length = 0
+
+        while True:
+            visited.add(current)
+            nbs = neighbors8(current[0], current[1], skel)
+
+            if prev is not None:
+                nbs = [p for p in nbs if p != prev]
+
+            if len(nbs) == 0:
+                break
+
+            # parou numa bifurcação
+            if len(nbs) > 1:
+                break
+
+            nxt = nbs[0]
+
+            if nxt in visited:
+                break
+
+            length += 1
+            prev = current
+            current = nxt
+
+        return length
+
+
+    # função para contar as ponats (folhas)
+    def contar_pontas(skeleton, min_length=10):
+        
+        # encontra endpoints
+        endpoints = find_endpoints(skeleton)
+
+        # filtra por tamanho do ramo
+        endpoints_filtrados = []
+
+        for (x, y) in endpoints:
+            length = branch_length(skeleton, (x, y))
+
+            if length > min_length:
+                endpoints_filtrados.append((x, y))
+
+
+        return endpoints_filtrados
+
+
+    endpoints_final = contar_pontas(skeleton, min_length=40)
+
+
+    # altura vertical da planta
+    ys, xs = np.where(img_limpa > 0)
+    altura_planta = ys.max() - ys.min()
+
+    if len(caminho_filtrado) == 0:
+        comprimento = altura_planta
+        diametro = 0
+
+    else:
+        # diâmetro
+        # encontra a base
+        ys, xs = np.where(mascara_caule > 0)
+        y_base = ys.max()
+
+        # sobe 10 pixels
+        y_target = y_base - 10
+
+        # mede a largura horizontal
+        linha = mascara_caule[y_target]
+        xs_linha = np.where(linha > 0)[0]
+        diametro = (xs_linha.max() - xs_linha.min())+2
+
+        # comprimento pelo caminho do esqueleto
+        comprimento = sum(np.hypot(caminho_filtrado[i][0] - caminho_filtrado[i-1][0],caminho_filtrado[i][1] - caminho_filtrado[i-1][1])for i in range(1, len(caminho_filtrado)))
+    
+
+
+    # Número de folhas
+    n_folhas = len(endpoints_final)
+
+    # Área foliar
+    area = cv2.countNonZero(mask_folhas)
+
+    # Altura vertical
+    altura = altura_planta
+
+    # Comprimento total
+    compr = comprimento
+
+    # Diâmetro
+    diam = diametro
+
+    # Salva resultado
+    resultados.append({
+        "Img": nome_arquivo,
+        "Altura Vert.": altura,
+        "Compr Total": compr,
+        "Diâmetro": diam,
+        "Área": area,
+        "Nro Folhas": n_folhas
+    })
+
+df = pd.DataFrame(resultados)
+df.to_csv("resultado_eucaliptos.csv", index=False)
+print("CSV gerado com sucesso!")
