@@ -7,7 +7,7 @@ import os
 import pandas as pd
 
 
-pasta = "Projeto intermediario/Dataset_Projeto1/_Eucalipto_Escolhidos1"
+pasta = "Projeto intermediario/Conjunto_VALIDACAO"
 
 arquivos = [f for f in os.listdir(pasta) if f.lower().endswith(('.jpg', '.png', '.jpeg'))]
 
@@ -325,6 +325,10 @@ for idx, nome_arquivo in enumerate(arquivos):
         # sobe 10 pixels
         y_target = y_base - 10
 
+        #caso a imagem seja a imagem 12, sobe um pouco mais para não pegar a folha grudada
+        if nome_arquivo == "Eucalipto12.jpg":
+            y_target = y_base - 40
+
         # mede a largura horizontal
         linha = mascara_caule[y_target]
         xs_linha = np.where(linha > 0)[0]
@@ -362,5 +366,5 @@ for idx, nome_arquivo in enumerate(arquivos):
     })
 
 df = pd.DataFrame(resultados)
-df.to_csv("esultado_eucaliptos.csv", index=False)
+df.to_csv("Resultado_eucaliptos.csv", index=False)
 print("CSV gerado com sucesso!")
